@@ -168,6 +168,6 @@ export default HandsonTab;
 |---|---|
 | ずっと「読み込み中」 | `groupVersionKind` の書き間違い（`kubevirt.io` / `v1` / `VirtualMachineInstance`）。ブラウザの開発者ツールのネットワークで、`/api/kubernetes/...` へのリクエストがエラーになっていないか確かめる |
 | 動いているのに「停止中」 | `namespace` か `name` を取り違えている |
-| どうしても進まない | `cp <このリポジトリ>/console-plugin/handson/solution/step2/HandsonTab.tsx ~/handson-plugin/src/` |
+| どうしても進まない | `cp <このリポジトリ>/solution/step2/HandsonTab.tsx ~/handson-plugin/src/` |
 
 次のユニット：[9. usePrometheusPoll で指標を取る](09-use-prometheus-poll.md)

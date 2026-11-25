@@ -42,7 +42,7 @@
    curl -fsSL https://nodejs.org/dist/v22.23.3/node-v22.23.3-linux-x64.tar.xz | tar -xJ -C .node --strip-components=1
    ```
 
-   macOS（Apple シリコン）なら `node-v22.23.3-darwin-arm64.tar.xz` を使い、`tar -xJ` を `tar -xz`（拡張子 `.tar.gz` の版）に読み替えてください。版は 22 系なら、新しいものでかまいません。
+   macOS（Apple シリコン）なら `node-v22.23.3-darwin-arm64.tar.gz` を使い、`tar -xJ` を `tar -xz` に読み替えてください。版は 22 系なら、新しいものでかまいません。
 
 2. この作業ディレクトリでだけ有効にする設定を、`env.sh` に書きます。
 
@@ -304,7 +304,7 @@ module.exports = {
 2. `src/HandsonTab.tsx` を作ります。`null` を返すコンポーネントは、何も表示しません。
 
 ```tsx
-// Step 1 でここにタブの中身を書く
+// ユニット 6 でここにタブの中身を書く
 const HandsonTab = () => null;
 
 export default HandsonTab;
@@ -381,7 +381,7 @@ ENTRYPOINT ["nginx", "-g", "daemon off;"]
 
 ```yaml
 # ハンズオン用のコンソールプラグイン。
-# イメージはクラスタ内でビルドする（BuildConfig、バイナリ入力）。手順は handson/README.md
+# イメージはクラスタ内でビルドする（BuildConfig、バイナリ入力）。手順は README.md
 ---
 apiVersion: v1
 kind: Namespace
@@ -537,7 +537,7 @@ spec:
 ```bash
 #!/usr/bin/env bash
 # マニフェストを適用し、クラスタ内でイメージをビルドしてコンソールにプラグインを登録する。
-# raptor から: KUBECONFIG=~/cluster/auth/kubeconfig ./deploy.sh
+# 別の kubeconfig を使うときは KUBECONFIG=<パス> ./deploy.sh のように指定する。
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -547,8 +547,9 @@ PLUGIN=handson-plugin
 oc apply -f deploy/handson-plugin.yaml
 
 # ビルドに要るものだけを送る（node_modules / dist は送らない）
-archive=$(mktemp --suffix=.tar.gz)
-trap 'rm -f "$archive"' EXIT
+tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT
+archive="$tmpdir/src.tar.gz"
 tar -czf "$archive" Dockerfile package.json package-lock.json tsconfig.json .swcrc webpack.config.js \
   console-extensions.json src
 oc -n "$NS" start-build "$PLUGIN" --from-archive="$archive" --follow --wait
@@ -634,6 +635,6 @@ fi
 | `npm run build` で止まる | `which node` が `~/handson-plugin/.node/bin/node` か（`source env.sh` を忘れていないか）確かめる |
 | `error TS…` で止まる | 型エラー。ファイル名と行番号がログに出る |
 | `oc start-build` が `Forbidden` | cluster-admin でログインしているか確かめる |
-| どうしても進まない | 完成形をコピーし、`npm ci` で入れ直す：`cp -r <このリポジトリ>/console-plugin/handson/solution/step0/. ~/handson-plugin/ && npm ci` |
+| どうしても進まない | 完成形をコピーし、`npm ci` で入れ直す：`cp -r <このリポジトリ>/solution/step0/. ~/handson-plugin/ && cd ~/handson-plugin && source env.sh && npm ci` |
 
 次のユニット：[5. React・TypeScript・SDK の基礎](05-react-and-sdk.md)

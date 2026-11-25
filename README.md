@@ -32,7 +32,7 @@ OpenShift の Web コンソールに、自分の画面を足す方法を学び�
 | 1 | [はじめに](units/01-introduction.md) | はじめに | 3 分 |
 | 2 | [dynamic plugin とは](units/02-what-is-dynamic-plugin.md) | 概念 | 10 分 |
 | 3 | [プラグインを構成するもの](units/03-plugin-anatomy.md) | 概念 | 10 分 |
-| 4 | [演習：プロジェクトを作ってデプロイする](units/04-exercise-setup.md) | 演習 | 25 分 |
+| 4 | [演習：プロジェクトを作ってデプロイする](units/04-exercise-setup.md) | 演習 | 30 分 |
 | 5 | [React・TypeScript・SDK の基礎](units/05-react-and-sdk.md) | 概念 | 10 分 |
 | 6 | [演習：VM の詳細にタブを足す](units/06-exercise-tab.md) | 演習 | 15 分 |
 | 7 | [useK8sWatchResource で Kubernetes のデータを取る](units/07-use-k8s-watch-resource.md) | 概念 | 10 分 |
@@ -45,12 +45,11 @@ OpenShift の Web コンソールに、自分の画面を足す方法を学び�
 `solution/` に、各演習の完成形があります。詰まったときは、そこからコピーしてください。
 
 ```
-handson/
-  README.md      このページ
-  units/         各ユニット
-  solution/
-    step0/       ユニット 4 の完成形（プロジェクト一式）
-    step1/       ユニット 6 で変える 3 ファイル（package.json / console-extensions.json / HandsonTab.tsx）
-    step2/       ユニット 8 の src/HandsonTab.tsx
-    step3/       ユニット 10 の src/HandsonTab.tsx
+README.md      このページ
+units/         各ユニット
+solution/
+  step0/       ユニット 4 の完成形（プロジェクト一式）
+  step1/       ユニット 6 で変える 3 ファイル（package.json / console-extensions.json / HandsonTab.tsx）
+  step2/       ユニット 8 の src/HandsonTab.tsx
+  step3/       ユニット 10 の src/HandsonTab.tsx
 ```

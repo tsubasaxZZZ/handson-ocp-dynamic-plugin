@@ -180,6 +180,6 @@ export default HandsonTab;
 |---|---|
 | ずっと「-」 | VM が止まっている（指標が無い）。または PromQL の namespace / name の書き間違い。タスク 1 で値が出るか確かめる |
 | 管理者以外で開くと「-」 | `namespace` を渡しているか確かめる。渡さないと、クラスタ全体の指標を見られる人しか使えない |
-| どうしても進まない | `cp <このリポジトリ>/console-plugin/handson/solution/step3/HandsonTab.tsx ~/handson-plugin/src/` |
+| どうしても進まない | `cp <このリポジトリ>/solution/step3/HandsonTab.tsx ~/handson-plugin/src/` |
 
 次のユニット：[11. 知識チェック](11-knowledge-check.md)

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # マニフェストを適用し、クラスタ内でイメージをビルドしてコンソールにプラグインを登録する。
-# raptor から: KUBECONFIG=~/cluster/auth/kubeconfig ./deploy.sh
+# 別の kubeconfig を使うときは KUBECONFIG=<パス> ./deploy.sh のように指定する。
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -10,8 +10,9 @@ PLUGIN=handson-plugin
 oc apply -f deploy/handson-plugin.yaml
 
 # ビルドに要るものだけを送る（node_modules / dist は送らない）
-archive=$(mktemp --suffix=.tar.gz)
-trap 'rm -f "$archive"' EXIT
+tmpdir=$(mktemp -d)
+trap 'rm -rf "$tmpdir"' EXIT
+archive="$tmpdir/src.tar.gz"
 tar -czf "$archive" Dockerfile package.json package-lock.json tsconfig.json .swcrc webpack.config.js \
   console-extensions.json src
 oc -n "$NS" start-build "$PLUGIN" --from-archive="$archive" --follow --wait

@@ -1,5 +1,5 @@
 # ハンズオン用のコンソールプラグイン。
-# イメージはクラスタ内でビルドする（BuildConfig、バイナリ入力）。手順は handson/README.md
+# イメージはクラスタ内でビルドする（BuildConfig、バイナリ入力）。手順は README.md
 ---
 apiVersion: v1
 kind: Namespace
