@@ -61,7 +61,7 @@ rm -rf ~/handson-plugin
 | 一覧の画面を作る | `useK8sWatchResource` に `isList: true` を付け、PatternFly の `Table` で並べる |
 | デプロイせずに画面で試す | `webpack serve` でプラグインを手元から配り、手元で動かしたコンソールにつなぐ（[console-plugin-template](https://github.com/openshift/console-plugin-template) の README） |
 
-実例として、同じリポジトリの `console-plugin/`（`vm-health-plugin`）は、このモジュールと同じ部品だけで、全 VM の一覧と、VM 詳細の「運用診断」タブを作っています。
+実際、このモジュールで使った部品だけでも、全 VM の一覧画面と VM 詳細のタブを備えた、実運用向けのプラグインが作れます。
 
 ## 参考リンク
 
