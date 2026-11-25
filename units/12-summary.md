@@ -23,7 +23,7 @@
 1. コンソールの有効化を外します（`spec.plugins` から `handson-plugin` を消す）。
 
    ```bash
-   idx=$(oc get console.operator cluster -o json | python3 -c 'import json,sys;print(json.load(sys.stdin)["spec"]["plugins"].index("handson-plugin"))')
+   idx=$(oc get console.operator cluster -o json | python3 -c 'import json,sys;print(json.load(sys.stdin)["spec"]["plugins"].index("handson-plugin"))') &&
    oc patch console.operator cluster --type=json -p "[{\"op\":\"remove\",\"path\":\"/spec/plugins/$idx\"}]"
    ```
 

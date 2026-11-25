@@ -12,6 +12,7 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     filename: '[name]-bundle-[contenthash].min.js',
     chunkFilename: '[name]-chunk-[chunkhash].min.js',
+    clean: true,
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],

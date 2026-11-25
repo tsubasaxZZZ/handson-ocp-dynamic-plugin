@@ -57,6 +57,8 @@
 
    **端末を開き直したら、毎回 `source ~/handson-plugin/env.sh` を実行します。**
 
+   `env.sh` の中のパスは `~/handson-plugin` で作業する前提です。別の場所に作った場合は、パスを自分の場所に直してください。
+
 3. 使えることを確かめます。
 
    ```bash
@@ -270,6 +272,7 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     filename: '[name]-bundle-[contenthash].min.js',
     chunkFilename: '[name]-chunk-[chunkhash].min.js',
+    clean: true,
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
@@ -635,6 +638,8 @@ fi
 | `npm run build` で止まる | `which node` が `~/handson-plugin/.node/bin/node` か（`source env.sh` を忘れていないか）確かめる |
 | `error TS…` で止まる | 型エラー。ファイル名と行番号がログに出る |
 | `oc start-build` が `Forbidden` | cluster-admin でログインしているか確かめる |
+| デプロイしても画面が古いまま | 新しい Pod への入れ替わりには少し時間がかかる。1 分ほど待ってから、ブラウザを更新する |
+| `deploy.sh` の最後で `spec.plugins` が無いというエラーになる | 前提の OpenShift Virtualization が入っているか確かめる（入っていれば `spec.plugins` は通常あります） |
 | どうしても進まない | 完成形をコピーし、`npm ci` で入れ直す：`cp -r <このリポジトリ>/solution/step0/. ~/handson-plugin/ && cd ~/handson-plugin && source env.sh && npm ci` |
 
 次のユニット：[5. React・TypeScript・SDK の基礎](05-react-and-sdk.md)

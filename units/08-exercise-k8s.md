@@ -57,7 +57,7 @@ const HandsonTab = ({ obj }: PageComponentProps) => {
   const name = obj?.metadata?.name;
 
   // VM と同じ名前の VMI を watch する。値が変われば自動で再描画される
-  const [vmi, loaded] = useK8sWatchResource<VMI>({
+  const [vmi, loaded, loadError] = useK8sWatchResource<VMI>({
     groupVersionKind: { group: 'kubevirt.io', version: 'v1', kind: 'VirtualMachineInstance' },
     namespace,
     name,
@@ -78,7 +78,11 @@ const HandsonTab = ({ obj }: PageComponentProps) => {
             <DescriptionListGroup>
               <DescriptionListTerm>状態</DescriptionListTerm>
               <DescriptionListDescription>
-                {!loaded ? '読み込み中' : vmi?.status?.phase ?? '停止中（VMI なし）'}
+                {loadError
+                  ? '読み込めません（権限がない可能性があります）'
+                  : !loaded
+                    ? '読み込み中'
+                    : (vmi?.status?.phase ?? '停止中（VMI なし）')}
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
@@ -106,8 +110,8 @@ export default HandsonTab;
    | 部分 | 意味 |
    |---|---|
    | `type VMI = K8sResourceCommon & { status?: … }` | ① 使うフィールドだけの型 |
-   | `const [vmi, loaded] = useK8sWatchResource<VMI>({ … })` | ② VMI を取る。3 つ目の戻り値（`loadError`）は今回使わないので受け取らない |
-   | `!loaded ? '読み込み中' : vmi?.status?.phase ?? '停止中（VMI なし）'` | 取り終わる前は「読み込み中」、取れたのに VMI が無ければ「停止中」 |
+   | `const [vmi, loaded, loadError] = useK8sWatchResource<VMI>({ … })` | ② VMI を取る。3 つ目の戻り値（`loadError`）も受け取る |
+   | `loadError ? '読み込めません…' : !loaded ? '読み込み中' : …` | 権限が無いなどで取れなければその案内、取り終わる前は「読み込み中」、取れたのに VMI が無ければ「停止中」 |
    | `vmi?.status?.guestOSInfo?.prettyName ?? '…'` | guest agent が報告していなければ、代わりの文字を出す |
    | `<DescriptionList isHorizontal>` | ③ 項目名と値を横に並べる |
 

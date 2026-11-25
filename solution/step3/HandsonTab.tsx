@@ -30,17 +30,21 @@ const HandsonTab = ({ obj }: PageComponentProps) => {
   const name = obj?.metadata?.name;
 
   // VM と同じ名前の VMI を watch する。値が変われば自動で再描画される
-  const [vmi, loaded] = useK8sWatchResource<VMI>({
+  const [vmi, loaded, loadError] = useK8sWatchResource<VMI>({
     groupVersionKind: { group: 'kubevirt.io', version: 'v1', kind: 'VirtualMachineInstance' },
     namespace,
     name,
   });
 
   // 直近 5 分の CPU 使用量（コア数）を Prometheus に聞く。namespace を渡すと、その namespace を
-  // 見られる人なら管理者でなくても使える API（テナンシー）を通る
+  // 見られる人なら管理者でなくても使える API（テナンシー）を通る。
+  // namespace と name が取れるまでは、空の query にして問い合わせない（ユニット 9）
   const [cpu] = usePrometheusPoll({
     endpoint: PrometheusEndpoint.QUERY,
-    query: `sum(rate(kubevirt_vmi_cpu_usage_seconds_total{namespace="${namespace}",name="${name}"}[5m]))`,
+    query:
+      namespace && name
+        ? `sum(rate(kubevirt_vmi_cpu_usage_seconds_total{namespace="${namespace}",name="${name}"}[5m]))`
+        : '',
     namespace,
     delay: 30000,
   });
@@ -61,7 +65,11 @@ const HandsonTab = ({ obj }: PageComponentProps) => {
             <DescriptionListGroup>
               <DescriptionListTerm>状態</DescriptionListTerm>
               <DescriptionListDescription>
-                {!loaded ? '読み込み中' : vmi?.status?.phase ?? '停止中（VMI なし）'}
+                {loadError
+                  ? '読み込めません（権限がない可能性があります）'
+                  : !loaded
+                    ? '読み込み中'
+                    : (vmi?.status?.phase ?? '停止中（VMI なし）')}
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>

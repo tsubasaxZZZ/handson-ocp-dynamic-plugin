@@ -24,7 +24,7 @@ const HandsonTab = ({ obj }: PageComponentProps) => {
   const name = obj?.metadata?.name;
 
   // VM と同じ名前の VMI を watch する。値が変われば自動で再描画される
-  const [vmi, loaded] = useK8sWatchResource<VMI>({
+  const [vmi, loaded, loadError] = useK8sWatchResource<VMI>({
     groupVersionKind: { group: 'kubevirt.io', version: 'v1', kind: 'VirtualMachineInstance' },
     namespace,
     name,
@@ -45,7 +45,11 @@ const HandsonTab = ({ obj }: PageComponentProps) => {
             <DescriptionListGroup>
               <DescriptionListTerm>状態</DescriptionListTerm>
               <DescriptionListDescription>
-                {!loaded ? '読み込み中' : vmi?.status?.phase ?? '停止中（VMI なし）'}
+                {loadError
+                  ? '読み込めません（権限がない可能性があります）'
+                  : !loaded
+                    ? '読み込み中'
+                    : (vmi?.status?.phase ?? '停止中（VMI なし）')}
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
