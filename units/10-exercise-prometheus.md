@@ -161,6 +161,8 @@ export default HandsonTab;
    ./deploy.sh
    ```
 
+   オプション2の人は、代わりに `./deploy-local.sh` を実行します。
+
 ## 結果を確認する
 
 1. コンソールを再読み込みして、「ハンズオン」タブを開きます。

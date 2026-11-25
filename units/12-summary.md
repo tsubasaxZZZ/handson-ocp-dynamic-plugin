@@ -10,8 +10,8 @@
 
 - dynamic plugin は、コンソールの**拡張ポイント**に部品を差し込む仕組み。コードはブラウザで動き、Pod は静的ファイルを配るだけ。
 - プラグインの中身は、`package.json` の `exposedModules`、`console-extensions.json` の `$codeRef`、コンポーネントの 3 つが**公開名**でつながってできている。
-- ビルドは「tsc で型チェック → swc で変換 → webpack と ConsoleRemotePlugin でまとめる」。手元で確かめ、配るイメージはクラスタの中で `package-lock.json` どおりに作る。
-- 配置は「BuildConfig → ImageStream → Deployment（nginx）→ Service（HTTPS）→ ConsolePlugin → Console の `spec.plugins`」。
+- ビルドは「tsc で型チェック → swc で変換 → webpack と ConsoleRemotePlugin でまとめる」。手元で確かめ、配るイメージは `package-lock.json` どおりに作る（作る場所はオプションで選ぶ）。
+- 配置は「ImageStream → Deployment（nginx）→ Service（HTTPS）→ ConsolePlugin → Console の `spec.plugins`」。イメージの作り方は 2 通りある（オプション1：BuildConfig でクラスタ内ビルド／オプション2：手元でビルドして内部レジストリへ push）。
 - `useK8sWatchResource` は、Kubernetes のリソースを「取る＋見張る」フック。
 - `usePrometheusPoll` は、PromQL を定期的に投げるフック。`namespace` を渡すと、管理者でなくても使える。
 - どちらも、ログインしている人の権限でアクセスする。
@@ -29,7 +29,7 @@
 
    **なぜ先にこれをするか：** ConsolePlugin を先に消すと、コンソールが存在しないプラグインを読み込もうとして、エラーを出し続けます。
 
-2. ConsolePlugin と namespace を消します。namespace を消すと、BuildConfig、イメージ、Deployment、Service もまとめて消えます。
+2. ConsolePlugin と namespace を消します。namespace を消すと、イメージ、Deployment、Service もまとめて消えます（オプション1の BuildConfig も）。
 
    ```bash
    oc delete consoleplugin handson-plugin

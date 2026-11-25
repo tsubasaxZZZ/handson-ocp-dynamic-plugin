@@ -374,7 +374,7 @@ ENTRYPOINT ["nginx", "-g", "daemon off;"]
 |---|---|
 | Namespace | `handson-plugin` |
 | ImageStream | ビルドしたイメージの置き場所 |
-| BuildConfig | `source.type: Binary`（ソースは手元から送る）、`strategy: Docker`（Dockerfile でビルド）、出力先は ImageStream |
+| BuildConfig | オプション1（クラスタ内ビルド）で使う。`source.type: Binary`（ソースは手元から送る）、`strategy: Docker`（Dockerfile でビルド）、出力先は ImageStream |
 | ConfigMap | nginx の設定。9443 で HTTPS を受け、`/usr/share/nginx/html`（= `dist/`）を配る |
 | Deployment | annotation `image.openshift.io/triggers` で、ImageStream が更新されたら自動で新しいイメージに入れ替える。証明書と nginx の設定をマウントする |
 | Service | annotation `service.beta.openshift.io/serving-cert-secret-name` で、OpenShift に HTTPS の証明書（Secret `plugin-serving-cert`）を発行させる |
@@ -526,6 +526,8 @@ spec:
       basePath: /
 ```
 
+2. オプション2（手元でビルドして push する）の人は、同じ内容から BuildConfig の文書を取り除いたものを `deploy/handson-plugin-local.yaml` として保存します。差分は BuildConfig の有無だけです。
+
 ## タスク 10：デプロイのスクリプトを作る
 
 `deploy.sh` は、次の 4 つを順に行います。
@@ -570,6 +572,88 @@ fi
    chmod +x deploy.sh
    ```
 
+### オプション2：手元でビルドして push するスクリプト
+
+イメージの作り方は、もう 1 つあります。クラスタの中でビルドせず、手元でビルドして、クラスタの内部レジストリへ push する方法です。クラスタ側のビルド Pod から外へ出られない環境では、こちらを使います。前提は、手元に `podman` か `docker` があることと、内部レジストリの公開ルートが有効なことです（確かめ方はタスク 11）。Mac で podman を使う場合は、先に `podman machine start` で仮想マシンを起動しておいてください。手元からベースイメージと npm へ出られることも必要です。
+
+`deploy-local.sh` は、次の 4 つを順に行います。
+
+1. 内部レジストリの公開ルートと、push の認証に使うトークンを確かめる（無ければ、理由を出して止まる）
+2. マニフェストを適用する（`oc apply`。BuildConfig を除いた `deploy/handson-plugin-local.yaml` を使う）
+3. 手元でイメージをビルドし、内部レジストリの公開ルートへ push する（プラットフォームはクラスタに合わせて `linux/amd64`）
+4. 新しい Pod に入れ替わるのを待ち（`oc rollout status`）、Console の `spec.plugins` に `handson-plugin` を足す（もう入っていれば何もしない）
+
+1. ビルドのとき、手元の `node_modules/` などを一緒に送らないよう、次の内容で `.dockerignore` を作ります。
+
+   ```text
+   node_modules
+   dist
+   .node
+   .npm-cache
+   ```
+
+2. 次の内容で `deploy-local.sh` を作り、実行できるようにします。
+
+```bash
+#!/usr/bin/env bash
+# マニフェストを適用し、手元でビルドしたイメージをクラスタの内部レジストリへ push して、
+# コンソールにプラグインを登録する（オプション2。クラスタの中ではビルドしない）。
+# 別の kubeconfig を使うときは KUBECONFIG=<パス> ./deploy-local.sh のように指定する。
+# 証明書エラーで止まる場合は TLS_VERIFY=false ./deploy-local.sh と実行する（podman のみ）。
+set -euo pipefail
+
+cd "$(dirname "$0")"
+NS=handson-plugin
+PLUGIN=handson-plugin
+
+# コンテナランタイム（podman があれば podman、無ければ docker を使う）
+if command -v podman >/dev/null 2>&1; then
+  RT=podman
+elif command -v docker >/dev/null 2>&1; then
+  RT=docker
+else
+  echo "podman か docker が必要です" >&2
+  exit 1
+fi
+
+# 内部レジストリの公開ルートを先に確かめる（マニフェストを適用する前に止まるため）
+if ! REGISTRY=$(oc get route default-route -n openshift-image-registry -o jsonpath='{.spec.host}'); then
+  echo "内部レジストリの公開ルートが有効になっていません。タスク 11 の手順で有効にしてください" >&2
+  exit 1
+fi
+IMAGE="$REGISTRY/$NS/$PLUGIN:latest"
+
+# push の認証に使うトークン（証明書だけの kubeconfig では取れない。その場合は oc login し直す）
+TOKEN=$(oc whoami -t 2>/dev/null || true)
+if [ -z "$TOKEN" ]; then
+  echo "oc whoami -t でトークンが取れませんでした。oc login し直してください" >&2
+  exit 1
+fi
+
+oc apply -f deploy/handson-plugin-local.yaml
+
+# 手元でビルドして push する（クラスタは amd64 なので、Apple シリコンでもプラットフォームを合わせる）
+TLS_OPT=""
+if [ "$RT" = podman ] && [ "${TLS_VERIFY:-true}" = "false" ]; then
+  TLS_OPT="--tls-verify=false"
+fi
+$RT build --platform linux/amd64 -t "$IMAGE" .
+echo "$TOKEN" | $RT login -u unused --password-stdin $TLS_OPT "$REGISTRY"
+$RT push $TLS_OPT "$IMAGE"
+
+oc -n "$NS" rollout status deploy/"$PLUGIN" --timeout=5m
+
+# コンソールで有効にする（もう入っていれば何もしない）
+if ! oc get console.operator cluster -o jsonpath='{.spec.plugins}' | grep -q "\"$PLUGIN\""; then
+  oc patch console.operator cluster --type=json \
+    -p "[{\"op\":\"add\",\"path\":\"/spec/plugins/-\",\"value\":\"$PLUGIN\"}]"
+fi
+```
+
+   ```bash
+   chmod +x deploy-local.sh
+   ```
+
 ## タスク 11：デプロイする
 
 1. ファイルが揃っていることを確かめます。
@@ -578,13 +662,16 @@ fi
    find . -path ./node_modules -prune -o -path ./.node -prune -o -path ./.npm-cache -prune -o -path ./dist -prune -o -type f -print | sort
    ```
 
-   次の 11 個が出れば揃っています。
+   オプション2の人は次の 14 個、オプション1の人はこのうちオプション2の 3 ファイル（`.dockerignore`、`deploy-local.sh`、`deploy/handson-plugin-local.yaml`）を除く 11 個が出れば揃っています。
 
    ```
+   ./.dockerignore
    ./.swcrc
    ./Dockerfile
    ./console-extensions.json
+   ./deploy-local.sh
    ./deploy.sh
+   ./deploy/handson-plugin-local.yaml
    ./deploy/handson-plugin.yaml
    ./env.sh
    ./package-lock.json
@@ -594,13 +681,33 @@ fi
    ./webpack.config.js
    ```
 
-2. デプロイします。
+2. デプロイします。オプション1（クラスタ内ビルド）の人は `deploy.sh` を実行します。
 
    ```bash
    ./deploy.sh
    ```
 
    初回は、ビルド用のイメージの取得と `npm ci` で 5〜10 分かかります。ビルドのログが端末に流れます。`npm warn deprecated …` という警告は、依存パッケージの中で使われている古いライブラリについてのもので、無視してかまいません。
+
+3. オプション2（手元でビルド）の人は、先に内部レジストリの公開ルートを確かめます。
+
+   ```bash
+   oc get route default-route -n openshift-image-registry   # HOST/PORT が出れば有効
+   ```
+
+   `not found` というエラーが出たら、有効にします（cluster-admin の操作です）。有効にしてから数十秒待って、もう一度 `oc get route` で出ることを確かめてください。
+
+   ```bash
+   oc patch configs.imageregistry.operator.openshift.io cluster --type merge -p '{"spec":{"defaultRoute":true}}'
+   ```
+
+   それからデプロイします。
+
+   ```bash
+   ./deploy-local.sh
+   ```
+
+   ビルドと push が手元で進みます。初回は、ベースイメージの取得と `npm ci` で 5〜10 分ほどかかります。
 
 ## 結果を確認する
 
@@ -611,6 +718,8 @@ fi
    Push successful
    deployment "handson-plugin" successfully rolled out
    ```
+
+   オプション2の人は、代わりに push の出力の最後の `digest: sha256:… size: …` と、同じく `deployment "handson-plugin" successfully rolled out` を確かめます。
 
 2. リソースができていることを確かめます。
 
@@ -628,7 +737,7 @@ fi
 
    `"name":"handson-plugin"` と `"extensions":[]` が見えれば、空のプラグインとして正しく配られています。
 
-この時点では、まだ画面に変化はありません。次のユニットからは、`console-extensions.json` と `src/HandsonTab.tsx` を書き換えて `./deploy.sh` を流す、を繰り返します。
+この時点では、まだ画面に変化はありません。次のユニットからは、`console-extensions.json` と `src/HandsonTab.tsx` を書き換えて、自分のオプションのスクリプト（`./deploy.sh` または `./deploy-local.sh`）を流す、を繰り返します。
 
 ## うまくいかないとき
 
@@ -640,6 +749,9 @@ fi
 | `oc start-build` が `Forbidden` | cluster-admin でログインしているか確かめる |
 | デプロイしても画面が古いまま | 新しい Pod への入れ替わりには少し時間がかかる。1 分ほど待ってから、ブラウザを更新する |
 | `deploy.sh` の最後で `spec.plugins` が無いというエラーになる | 前提の OpenShift Virtualization が入っているか確かめる（入っていれば `spec.plugins` は通常あります） |
+| オプション2で `default-route` が無いと言われる | 内部レジストリの公開ルートが無効。タスク 11 の手順で有効にする |
+| オプション2で login や push が証明書エラーになる | 端末がクラスタの証明書を信頼していない。podman の場合は `TLS_VERIFY=false ./deploy-local.sh` で実行し直す。docker の場合は、デーモンの設定でこのレジストリを insecure として登録するか、クラスタの CA を信頼させる |
+| オプション2で push が unauthorized になる | ログインのトークンが無い、または古い。`oc login` し直してから再実行する |
 | どうしても進まない | 完成形をコピーし、`npm ci` で入れ直す：`cp -r <このリポジトリ>/solution/step0/. ~/handson-plugin/ && cd ~/handson-plugin && source env.sh && npm ci` |
 
 次のユニット：[5. React・TypeScript・SDK の基礎](05-react-and-sdk.md)

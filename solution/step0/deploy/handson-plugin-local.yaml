@@ -1,0 +1,121 @@
+# ハンズオン用のコンソールプラグイン（オプション2：手元でビルドして push する）。
+# クラスタの中ではビルドしないので、BuildConfig は含まない。手順は README.md
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: handson-plugin
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: handson-plugin
+  namespace: handson-plugin
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: handson-plugin
+  namespace: handson-plugin
+data:
+  nginx.conf: |
+    error_log /dev/stdout info;
+    events {}
+    http {
+      access_log         /dev/stdout;
+      include            /etc/nginx/mime.types;
+      default_type       application/octet-stream;
+      keepalive_timeout  65;
+      server {
+        listen              9443 ssl;
+        listen              [::]:9443 ssl;
+        ssl_certificate     /var/cert/tls.crt;
+        ssl_certificate_key /var/cert/tls.key;
+        root                /usr/share/nginx/html;
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: handson-plugin
+  namespace: handson-plugin
+  annotations:
+    # ImageStream が更新されたら（push が終わったら）自動でロールアウトする
+    image.openshift.io/triggers: >-
+      [{"from":{"kind":"ImageStreamTag","name":"handson-plugin:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"handson-plugin\")].image"}]
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: handson-plugin
+  template:
+    metadata:
+      labels:
+        app: handson-plugin
+    spec:
+      containers:
+        - name: handson-plugin
+          image: image-registry.openshift-image-registry.svc:5000/handson-plugin/handson-plugin:latest
+          ports:
+            - containerPort: 9443
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 50Mi
+          volumeMounts:
+            - name: plugin-serving-cert
+              readOnly: true
+              mountPath: /var/cert
+            - name: nginx-conf
+              readOnly: true
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: plugin-serving-cert
+          secret:
+            secretName: plugin-serving-cert
+            defaultMode: 420
+        - name: nginx-conf
+          configMap:
+            name: handson-plugin
+            defaultMode: 420
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: handson-plugin
+  namespace: handson-plugin
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: plugin-serving-cert
+spec:
+  selector:
+    app: handson-plugin
+  ports:
+    - name: 9443-tcp
+      protocol: TCP
+      port: 9443
+      targetPort: 9443
+---
+apiVersion: console.openshift.io/v1
+kind: ConsolePlugin
+metadata:
+  name: handson-plugin
+spec:
+  displayName: Handson Plugin
+  backend:
+    type: Service
+    service:
+      name: handson-plugin
+      namespace: handson-plugin
+      port: 9443
+      basePath: /

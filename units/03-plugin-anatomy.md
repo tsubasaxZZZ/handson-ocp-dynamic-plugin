@@ -68,7 +68,7 @@ package.json の consolePlugin ────────────────�
 
 型チェックと変換を別の道具に分けているのは、テンプレート（[console-plugin-template](https://github.com/openshift/console-plugin-template)）と同じ考え方です。変換は速い swc に任せ、型の正しさは tsc で確かめます。
 
-このビルドは、**手元**（`npm run build`。数秒で型の間違いが分かる）と、**クラスタの中**（Dockerfile。配るイメージを作る）の 2 か所で同じものを流します。手元とクラスタで入る版が揃うのは、`package-lock.json` があるからです。
+このビルドは、**手元**（`npm run build`。数秒で型の間違いが分かる）と、**配るイメージを作る場所**（Dockerfile）の 2 か所で同じものを流します。イメージを作る場所は、ユニット 4 で選ぶオプションで変わります（クラスタの中か、手元か）。両方で入る版が揃うのは、`package-lock.json` があるからです。
 
 ## クラスタに置くまでの流れ
 
@@ -88,9 +88,11 @@ ConsolePlugin（「handson-plugin は、この Service から配っている」�
 Console の spec.plugins に handson-plugin を足す（有効化）
 ```
 
+上の図はオプション1（クラスタ内ビルド）の流れです。オプション2では、BuildConfig の代わりに手元でビルドして ImageStream へ push します（ユニット 4）。
+
 | リソース | 役割 |
 |---|---|
-| BuildConfig | クラスタの中でビルドする設定。ソースは手元から送る（Binary ビルド）。手元でのビルドは確認用で、配るイメージは毎回クラスタの中で作る |
+| BuildConfig | オプション1で、クラスタの中でビルドする設定。ソースは手元から送る（Binary ビルド）。オプション2では使わず、手元でビルドして ImageStream へ push する |
 | ImageStream | できたイメージの置き場所 |
 | Deployment | nginx の Pod。イメージが更新されると自動で入れ替わる |
 | Service | コンソールはプラグインを **HTTPS でしか取りに来ない**。annotation で証明書を自動発行させる |
@@ -101,6 +103,6 @@ Console の spec.plugins に handson-plugin を足す（有効化）
 
 - プラグインの中身は `package.json`（`exposedModules`）、`console-extensions.json`（`$codeRef`）、コンポーネントの 3 つで、**公開名**でつながっている。
 - ビルドは「tsc で型チェック → swc で変換 → webpack と ConsoleRemotePlugin でまとめる」。
-- 配置は「BuildConfig → ImageStream → Deployment（nginx）→ Service → ConsolePlugin → Console に有効化」。
+- 配置は「ImageStream → Deployment（nginx）→ Service → ConsolePlugin → Console に有効化」。イメージは BuildConfig で作る（オプション1）か、手元で作って push する（オプション2）。
 
 次のユニット：[4. 演習：プロジェクトを作ってデプロイする](04-exercise-setup.md)

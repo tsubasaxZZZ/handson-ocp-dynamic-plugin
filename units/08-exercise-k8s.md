@@ -134,6 +134,8 @@ export default HandsonTab;
    ./deploy.sh
    ```
 
+   オプション2の人は、代わりに `./deploy-local.sh` を実行します。
+
 ## 結果を確認する
 
 1. コンソールを再読み込みして、ユニット 6 と同じ VM の「ハンズオン」タブを開きます。
