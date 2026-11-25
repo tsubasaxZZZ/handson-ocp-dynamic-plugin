@@ -1,0 +1,10 @@
+[
+  {
+    "type": "console.tab/horizontalNav",
+    "properties": {
+      "model": { "group": "kubevirt.io", "version": "v1", "kind": "VirtualMachine" },
+      "page": { "name": "ハンズオン", "href": "handson" },
+      "component": { "$codeRef": "HandsonTab" }
+    }
+  }
+]
